@@ -16,8 +16,8 @@ func newRouteHandler(routeId string, routeHandleFunc func(mface.MMessage, mface.
 }
 
 type routeHandler struct {
-	routeId string
-	routeHandleFunc func(mface.MMessage , mface.MMessage) error
+	routeId         string
+	routeHandleFunc func(mface.MMessage, mface.MMessage) error
 }
 
 func (rh *routeHandler) RouteID() string {

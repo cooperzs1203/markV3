@@ -16,8 +16,14 @@ type defaultConfig struct {
 	host    string
 	port    string
 
-	cmRequestCS  uint64
-	cmResponseCS uint64
+	connResponseCS uint64
+	connReadTimeOut uint64
+
+	dpCompletedCS uint64
+
+	cmMaxConnNumber uint64
+	cmRequestCS     uint64
+	cmResponseCS    uint64
 
 	mmRequestCS  uint64
 	mmResponseCS uint64
@@ -34,6 +40,10 @@ func (dc *defaultConfig) Load() error {
 	dc.host = "0.0.0.0"
 	dc.port = "8888"
 
+	dc.connReadTimeOut = 15
+	dc.connResponseCS = 1000
+	dc.dpCompletedCS = 1000
+	dc.cmMaxConnNumber = 1000
 	dc.cmRequestCS = 1000
 	dc.cmResponseCS = 1000
 	dc.mmRequestCS = 1000
@@ -52,6 +62,10 @@ func (dc *defaultConfig) Reload() error {
 	dc.host = "0.0.0.0"
 	dc.port = "8888"
 
+	dc.connReadTimeOut = 15
+	dc.connResponseCS = 1000
+	dc.dpCompletedCS = 1000
+	dc.cmMaxConnNumber = 1000
 	dc.cmRequestCS = 1000
 	dc.cmResponseCS = 1000
 	dc.mmRequestCS = 1000
@@ -78,6 +92,21 @@ func (dc *defaultConfig) Port() string {
 	return dc.port
 }
 
+func (dc *defaultConfig) ConnResponseCS() uint64 {
+	return dc.connResponseCS
+}
+
+func (dc *defaultConfig) ConnReadTimeOut() uint64 {
+	return dc.connReadTimeOut
+}
+
+func (dc *defaultConfig) DPCompletedCS() uint64 {
+	return dc.dpCompletedCS
+}
+
+func (dc *defaultConfig) CMMaxConnNumber() uint64 {
+	return dc.cmMaxConnNumber
+}
 func (dc *defaultConfig) CMRequestCS() uint64 {
 	return dc.cmRequestCS
 }

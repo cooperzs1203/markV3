@@ -9,4 +9,6 @@ type MRouteManager interface {
 	MBase
 	SetServer(MServer)
 	AddRouteHandle(route MRouteHandler) error
+	RequestChan() chan MMessage
+	ResponseChan() chan MMessage
 }

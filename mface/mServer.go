@@ -12,4 +12,7 @@ type MServer interface {
 
 	AddRoute(string, func(MMessage, MMessage) error) error
 	AddRoutes(map[string]func(MMessage, MMessage) error) error
+
+	AddRequestHook(func(MMessage) bool)
+	AddResponseHook(func(MMessage) bool)
 }

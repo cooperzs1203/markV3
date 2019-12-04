@@ -1,6 +1,7 @@
 package mnet
 
 import (
+	"fmt"
 	"log"
 	"markV3/mface"
 	"net"
@@ -46,7 +47,7 @@ type server struct {
 	config mface.MConfig
 
 	connManager  mface.MConnManager
-	msgManager   mface.MConnManager
+	msgManager   mface.MMsgManager
 	routeManager mface.MRouteManager
 
 	listener *net.Listener
@@ -313,7 +314,7 @@ func (s *server) AddRoutes(routes map[string]func(mface.MMessage, mface.MMessage
 		return nil
 	}
 
-	for routeId  , routeHandleFunc := range routes {
+	for routeId, routeHandleFunc := range routes {
 		route := newRouteHandler(routeId, routeHandleFunc)
 		if err := s.routeManager.AddRouteHandle(route); err != nil {
 			return err
@@ -321,6 +322,16 @@ func (s *server) AddRoutes(routes map[string]func(mface.MMessage, mface.MMessage
 	}
 
 	return nil
+}
+
+func (s *server) AddRequestHook(hookFunc func(mface.MMessage) bool) {
+	newRequestHook := newHookHandler(Hook_Method_Request, hookFunc)
+	s.MsgManager().AddHook(newRequestHook)
+}
+
+func (s *server) AddResponseHook(hookFunc func(mface.MMessage) bool) {
+	newResponseHook := newHookHandler(Hook_Method_Response, hookFunc)
+	s.MsgManager().AddHook(newResponseHook)
 }
 
 // ======= private functions ========
@@ -339,7 +350,8 @@ func (s *server) startAcceptConnection() {
 			continue
 		}
 
-		// todo:handle conn
-		log.Println(conn)
+		if err := s.connManager.HandleNewConn(&conn); err != nil {
+			log.Printf(fmt.Sprintf("[%+v] new conn add into connManager error : %+v" , conn , err))
+		}
 	}
 }

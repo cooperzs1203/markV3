@@ -63,6 +63,35 @@ func (rm *routeManager) Start() error {
 
 func (rm *routeManager) Stop() error {
 	log.Printf("[RouteManager] Stop")
+	rm.status = Serve_Status_Reload
+
+	// 1. ready new request and response channel
+	newRequestChan := make(chan mface.MMessage, rm.server.Config().RMRequestCS())
+	newResponseChan := make(chan mface.MMessage, rm.server.Config().RMResponseCS())
+
+	// 2. close request and response channel
+	close(rm.requestChan)
+	close(rm.responseChan)
+
+	// 3. wait for request and response channel empty
+	for {
+		if len(rm.requestChan) == 0 {
+			break
+		}
+	}
+
+	for {
+		if len(rm.responseChan) == 0 {
+			break
+		}
+	}
+
+	// 4.exchange request and response channel
+	rm.requestChan = newRequestChan
+	rm.responseChan = newResponseChan
+
+	rm.status = Serve_Status_Running
+
 	return nil
 }
 
@@ -96,7 +125,8 @@ func (rm *routeManager) OfficialEnding() error {
 		}
 	}
 
-	// todo:3.clean all route functions
+	// 3.clean all route functions
+	rm.cleanRoutes()
 
 	rm.status = Serve_Status_Stopped
 
@@ -106,8 +136,40 @@ func (rm *routeManager) OfficialEnding() error {
 func (rm *routeManager) Reload() error {
 	log.Printf("[RouteManager] Reload")
 	rm.status = Serve_Status_Reload
+	// 1. ready new request and response channel
+	newRequestChan := make(chan mface.MMessage, rm.server.Config().CMRequestCS())
+	newResponseChan := make(chan mface.MMessage, rm.server.Config().CMResponseCS())
+
+	// 2. close request and response channel
+	close(rm.requestChan)
+	close(rm.responseChan)
+
+	// 3. wait for request and response channel empty
+	for {
+		if len(rm.requestChan) == 0 {
+			break
+		}
+	}
+
+	for {
+		if len(rm.responseChan) == 0 {
+			break
+		}
+	}
+
+	// 4.exchange request and response channel
+	rm.requestChan = newRequestChan
+	rm.responseChan = newResponseChan
 	rm.status = Serve_Status_Running
 	return nil
+}
+
+func (rm *routeManager) RequestChan() chan mface.MMessage {
+	return rm.requestChan
+}
+
+func (rm *routeManager) ResponseChan() chan mface.MMessage {
+	return rm.responseChan
 }
 
 func (rm *routeManager) AddRouteHandle(route mface.MRouteHandler) error {
@@ -127,9 +189,13 @@ func (rm *routeManager) AddRouteHandle(route mface.MRouteHandler) error {
 // request
 func (rm *routeManager) startAcceptRequestFromMM() {
 	for {
-		request , ok := <- rm.requestChan
+		request, ok := <-rm.requestChan
 		if !ok {
-			break
+			if rm.status >= Serve_Status_Ending {
+				break
+			} else {
+				continue
+			}
 		}
 
 		rm.handleRequest(request)
@@ -138,37 +204,58 @@ func (rm *routeManager) startAcceptRequestFromMM() {
 
 // response
 func (rm *routeManager) startAcceptResponseToMM() {
+	for {
+		response, ok := <-rm.responseChan
+		if !ok {
+			if rm.status >= Serve_Status_Ending {
+				break
+			} else {
+				continue
+			}
+		}
 
+		rm.server.MsgManager().ResponseChan() <- response
+	}
 }
 
 func (rm *routeManager) handleRequest(request mface.MMessage) {
 	// 1.get handle route
-	route , err := rm.getHandleRoute(request.MsgID())
+	route, err := rm.getHandleRoute(request.MsgID())
 	if err != nil {
-		log.Printf("get handle route error : %+v" , err)
+		log.Printf("get handle route error : %+v", err)
 		return
 	}
 
 	// 2.goroutine handle request
 	routeHandleFunc := route.RouteHandleFunc()
-	go func(routeId string , handleFunc func(request mface.MMessage , response mface.MMessage) error) {
+	go func(routeId string, handleFunc func(request mface.MMessage, response mface.MMessage) error) {
 		var response mface.MMessage
-		err := handleFunc(request , response)
+		err := handleFunc(request, response)
 		if err != nil {
-			log.Printf("[%s] handle request error : %+v \n %+v" , routeId, request , err)
+			log.Printf("[%s] handle request error : %+v \n %+v", routeId, request, err)
 		}
 		rm.responseChan <- response
-	}(route.RouteID() , routeHandleFunc)
+	}(route.RouteID(), routeHandleFunc)
 }
 
-func (rm *routeManager) getHandleRoute(routeId string) (mface.MRouteHandler , error) {
+func (rm *routeManager) getHandleRoute(routeId string) (mface.MRouteHandler, error) {
 	rm.routesLock.RLock()
 	defer rm.routesLock.RUnlock()
 
 	route, exists := rm.routes[routeId]
 	if !exists {
-		return nil , errors.New(fmt.Sprintf("[%s] routeId not exists" , routeId))
+		return nil, errors.New(fmt.Sprintf("[%s] routeId not exists", routeId))
 	}
 
-	return route , nil
+	return route, nil
+}
+
+func (rm *routeManager) cleanRoutes() {
+	rm.routesLock.Lock()
+	defer rm.routesLock.Unlock()
+
+	for routeId := range rm.routes {
+		delete(rm.routes, routeId)
+	}
+	rm.routes = nil
 }

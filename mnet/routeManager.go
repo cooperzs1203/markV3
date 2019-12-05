@@ -228,13 +228,11 @@ func (rm *routeManager) handleRequest(request mface.MMessage) {
 
 	// 2.goroutine handle request
 	routeHandleFunc := route.RouteHandleFunc()
-	go func(routeId string, handleFunc func(request mface.MMessage, response mface.MMessage) error) {
-		var response mface.MMessage
-		err := handleFunc(request, response)
-		if err != nil {
-			log.Printf("[%s] handle request error : %+v \n %+v", routeId, request, err)
+	go func(routeId string, handleFunc mface.RouteHandleFunc) {
+		response := handleFunc(request)
+		if response != nil {
+			rm.responseChan <- response
 		}
-		rm.responseChan <- response
 	}(route.RouteID(), routeHandleFunc)
 }
 

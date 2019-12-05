@@ -10,13 +10,13 @@ import (
 	"markV3/mtool"
 )
 
-func newDataProtocol(head string, msgIdLength uint32, connId string, completedMsgCS uint64) mface.MDataProtocol {
+func NewDataProtocol(head string, msgIdLength uint32 , lengthOfDataLength uint32, connId string, completedMsgCS uint64) mface.MDataProtocol {
 	dp := &dataProtocol{
 		connId:           connId,
 		head:             head,
 		headL:            uint32(len(head)),
 		MsgIdL:           msgIdLength,
-		LDataL:           4,
+		LDataL:           lengthOfDataLength,
 		buffer:           make([]byte, 0),
 		completedMsgChan: make(chan mface.MMessage, completedMsgCS),
 	}
@@ -53,11 +53,11 @@ func (dp *dataProtocol) Unmarshal(data []byte) {
 			break
 		}
 
-		totalData := dp.buffer[i : i+dp.totalHeaderLegth()+length]
+		totalData := dp.buffer[i : i+dp.totalHeaderLegth()+dataLength]
 		msg := newMessage(dp.connId, totalData, dp.headLegth(), dp.headMsgLegth(), dp.totalHeaderLegth())
 		dp.completedMsgChan <- msg
 
-		i = i + dp.totalHeaderLegth() + length - 1
+		i = i + dp.totalHeaderLegth() + dataLength - 1
 
 	}
 
@@ -68,6 +68,17 @@ func (dp *dataProtocol) Unmarshal(data []byte) {
 	} else {
 		dp.buffer = make([]byte, 0)
 	}
+}
+
+func (dp *dataProtocol) Marshal(routeId string, data []byte) []byte {
+	mData := make([]byte, 0)
+
+	mData = append(mData, []byte(dp.head)...)
+	mData = append(mData, []byte(routeId)...)
+	mData = append(mData, mtool.IntToByte(uint32(len(data)))...)
+	mData = append(mData, data...)
+
+	return mData
 }
 
 func (dp *dataProtocol) CompletedMessageChan() chan mface.MMessage {

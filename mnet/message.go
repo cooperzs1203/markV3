@@ -10,6 +10,10 @@ import (
 	"markV3/mtool"
 )
 
+func NewMessage(connId string, data []byte) mface.MMessage {
+
+}
+
 func newMessage(connId string, data []byte, headLength uint32, headMsgLegth uint32, totalHeaderLegth uint32) mface.MMessage {
 	m := &message{
 		connId:     connId,
@@ -44,10 +48,21 @@ func (m *message) MsgID() string {
 	return m.msgId
 }
 
+func (m *message) RouteID() string {
+	return m.msgId
+}
+
 func (m *message) ConnID() string {
 	return m.connId
 }
 
 func (m *message) Marshal() []byte {
-	return []byte{}
+	bs := make([]byte , 0)
+
+	bs = append(bs , []byte(m.head)...)
+	bs = append(bs , []byte(m.msgId)...)
+	bs = append(bs , mtool.IntToByte(m.dataLength)...)
+	bs = append(bs , m.data...)
+
+	return bs
 }

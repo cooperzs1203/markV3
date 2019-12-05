@@ -7,5 +7,6 @@ package mface
 
 type MDataProtocol interface {
 	Unmarshal([]byte)
+	Marshal(string, []byte) []byte
 	CompletedMessageChan() chan MMessage
 }

@@ -301,7 +301,7 @@ func (s *server) RunEntranceFunc(f func() error) {
 	s.entranceFuncs = append(s.entranceFuncs, f)
 }
 
-func (s *server) AddRoute(routeId string, routeHandleFunc func(mface.MMessage, mface.MMessage) error) error {
+func (s *server) AddRoute(routeId string, routeHandleFunc mface.RouteHandleFunc) error {
 	route := newRouteHandler(routeId, routeHandleFunc)
 	if err := s.routeManager.AddRouteHandle(route); err != nil {
 		return err
@@ -309,7 +309,7 @@ func (s *server) AddRoute(routeId string, routeHandleFunc func(mface.MMessage, m
 	return nil
 }
 
-func (s *server) AddRoutes(routes map[string]func(mface.MMessage, mface.MMessage) error) error {
+func (s *server) AddRoutes(routes map[string]mface.RouteHandleFunc) error {
 	if len(routes) == 0 {
 		return nil
 	}

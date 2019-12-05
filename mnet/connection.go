@@ -46,7 +46,7 @@ func (c *connection) Load() error {
 	c.status = Serve_Status_Load
 
 	c.responseChan = make(chan mface.MMessage, c.cm.Server().Config().ConnResponseCS())
-	c.dp = newDataProtocol("HEAD", 10, c.id, c.cm.Server().Config().DPCompletedCS())
+	c.dp = NewDataProtocol("HEAD", 10, 4, c.id, c.cm.Server().Config().DPCompletedCS())
 
 	return nil
 }
@@ -74,7 +74,14 @@ func (c *connection) StartEnding() error {
 	// 1.close read data
 	c.status = Serve_Status_Ending
 
-	// todo:2.close data protocol
+	// 2.close data protocol
+	close(c.dp.CompletedMessageChan())
+
+	for {
+		if len(c.dp.CompletedMessageChan()) == 0 {
+			break
+		}
+	}
 
 	return nil
 }
@@ -105,7 +112,7 @@ func (c *connection) Reload() error {
 	log.Printf("[%s] Reload", c.id)
 	c.status = Serve_Status_Reload
 
-	newDP := newDataProtocol("HEAD", 10, c.id, c.cm.Server().Config().DPCompletedCS())
+	newDP := NewDataProtocol("HEAD", 10, 4, c.id, c.cm.Server().Config().DPCompletedCS())
 
 	close(c.dp.CompletedMessageChan())
 
@@ -128,8 +135,6 @@ func (c *connection) Reload() error {
 	}
 
 	c.responseChan = newResponseChan
-
-
 
 	c.status = Serve_Status_Running
 
@@ -170,7 +175,7 @@ func (c *connection) startReadData() {
 
 func (c *connection) startAcceptRequest() {
 	for {
-		request , ok := <- c.dp.CompletedMessageChan()
+		request, ok := <-c.dp.CompletedMessageChan()
 		if !ok {
 			if c.status >= Serve_Status_Ending {
 				break

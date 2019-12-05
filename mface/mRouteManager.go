@@ -1,8 +1,10 @@
 package mface
 
+type RouteHandleFunc func(MMessage) MMessage
+
 type MRouteHandler interface {
 	RouteID() string
-	RouteHandleFunc() func(MMessage , MMessage) error
+	RouteHandleFunc() RouteHandleFunc
 }
 
 type MRouteManager interface {

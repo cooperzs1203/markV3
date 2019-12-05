@@ -77,7 +77,8 @@ func (cm *connManager) StartEnding() error {
 	log.Printf("[ConnManager] Start Ending")
 	cm.status = Serve_Status_Ending
 
-	// todo:1.close all connections of request goroutine
+	// 1.close all connections of request goroutine
+	cm.noticeConnectionsStartEnding()
 
 	// 2.close request channel
 	close(cm.requestChan)
@@ -105,9 +106,11 @@ func (cm *connManager) OfficialEnding() error {
 		}
 	}
 
-	// todo:3.close all connections of response goroutine
+	// 3.close all connections of response goroutine
+	cm.noticeConnectionsOfficialEnding()
 
-	// todo:4.stop all of connection , and clean []connections
+	// 4.clean []connections
+	cm.cleanConnections()
 
 	cm.status = Serve_Status_Stopped
 
@@ -263,4 +266,39 @@ func (cm *connManager) getConnAndReplyResponse(response mface.MMessage) error {
 	}
 
 	return nil
+}
+
+func (cm *connManager) noticeConnectionsStartEnding() {
+	cm.connectionsLock.RLock()
+	defer cm.connectionsLock.RUnlock()
+
+	for connId := range cm.connections {
+		conn := cm.connections[connId]
+		if err := conn.StartEnding(); err != nil {
+			log.Printf("[%s] start ending error : %+v" ,connId, err)
+		}
+	}
+}
+
+func (cm *connManager) noticeConnectionsOfficialEnding() {
+	cm.connectionsLock.RLock()
+	defer cm.connectionsLock.RUnlock()
+
+	for connId := range cm.connections {
+		conn := cm.connections[connId]
+		if err := conn.OfficialEnding(); err != nil {
+			log.Printf("[%s] official ending error : %+v" ,connId, err)
+		}
+	}
+}
+
+func (cm *connManager) cleanConnections() {
+	cm.connectionsLock.Lock()
+	defer cm.connectionsLock.Unlock()
+
+	for connId := range cm.connections {
+		delete(cm.connections , connId)
+	}
+
+	cm.connections = nil
 }

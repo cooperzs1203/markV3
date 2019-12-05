@@ -10,8 +10,8 @@ type MServer interface {
 	RouteManager() MRouteManager
 	RunEntranceFunc(func() error)
 
-	AddRoute(string, func(MMessage, MMessage) error) error
-	AddRoutes(map[string]func(MMessage, MMessage) error) error
+	AddRoute(string, RouteHandleFunc) error
+	AddRoutes(map[string]RouteHandleFunc) error
 
 	AddRequestHook(func(MMessage) bool)
 	AddResponseHook(func(MMessage) bool)

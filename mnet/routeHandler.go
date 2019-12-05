@@ -7,7 +7,7 @@ package mnet
 
 import "markV3/mface"
 
-func newRouteHandler(routeId string, routeHandleFunc func(mface.MMessage, mface.MMessage) error) mface.MRouteHandler {
+func newRouteHandler(routeId string, routeHandleFunc mface.RouteHandleFunc) mface.MRouteHandler {
 	rh := &routeHandler{
 		routeId:         routeId,
 		routeHandleFunc: routeHandleFunc,
@@ -17,13 +17,13 @@ func newRouteHandler(routeId string, routeHandleFunc func(mface.MMessage, mface.
 
 type routeHandler struct {
 	routeId         string
-	routeHandleFunc func(mface.MMessage, mface.MMessage) error
+	routeHandleFunc mface.RouteHandleFunc
 }
 
 func (rh *routeHandler) RouteID() string {
 	return rh.routeId
 }
 
-func (rh *routeHandler) RouteHandleFunc() func(mface.MMessage, mface.MMessage) error {
+func (rh *routeHandler) RouteHandleFunc() mface.RouteHandleFunc {
 	return rh.routeHandleFunc
 }
